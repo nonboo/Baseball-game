@@ -4,7 +4,8 @@ Created on Tue May 14 16:40:26 2019
 
 @author: Nobuaki
 """
-from myfunction import make_saikoro,game_sa
+from myfunction import make_saikoro,game_sa,get_juni
+
 import random
 import numpy as np
 #import decimal
@@ -34,12 +35,13 @@ Taisen_6 = np.array([[1,2],
                      [4,5]])
 
 #チームインデックス、勝ち数、負け数、引き分け、勝率,重み,前試合の結果
-Syohai = np.array([[0,0,0,0,0.000,1.2,0],#広島
-                   [1,0,0,0,0.000,1.1,0],#巨人
-                   [2,0,0,0,0.000,0.7,0],#横浜
+#omomiは0.0から3.0まで0.5刻み
+Syohai = np.array([[0,0,0,0,0.000,1,0],#広島
+                   [1,0,0,0,0.000,1,0],#巨人
+                   [2,0,0,0,0.000,1.0,0],#横浜
                    [3,0,0,0,0.000,1.0,0],#ヤクルト
-                   [4,0,0,0,0.000,0.9,0],#阪神
-                   [5,0,0,0,0.000,0.8,0]])#中日
+                   [4,0,0,0,0.000,1.0,0],#阪神
+                   [5,0,0,0,0.000,1.0,0]])#中日
 #順位表　勝率の高いチームから順に格納。チームインデックス、勝ち数、負け数、引き分け、勝率、ゲーム差
 Junihyo = np.array([[0,0,0,0,0,0.000],
                    [0,0,0,0,0,0.000],
@@ -54,68 +56,79 @@ def Game(taisen):
         omote_idx = taisen[x,0]
         ura_idx   = taisen[x,1]
         #saikoro = [1,2,3,4,5,6]
-        omote_saikoro = make_saikoro(Syohai[omote_idx,5])
+        #重みで、目の確立を操作する。
+        #print('{:.1f}'.format(round(Syohai[omote_idx,5],1)))
+        omote_saikoro = make_saikoro(round(Syohai[omote_idx,5],1))
         #print(Syohai[omote_idx,5])
-        ura_saikoro = make_saikoro(Syohai[ura_idx,5])
+        ura_saikoro = make_saikoro(round(Syohai[ura_idx,5],1))
         Score_A = []
         Score_B = []
         sayonara = ""
 
+#１，２だったら1点
+        i = 1
         for i in range(12):
+            
             point = 0
             while sayonara == "":
                 saikoro_choice = np.random.choice(omote_saikoro)
+                
                 #print(saikoro_choice)
-                if saikoro_choice >= 3:
-                    point += 0
-                    Score_A.append(int(point))
-                    point = 0
-                    break
-
                 if saikoro_choice == 1:
                     #print(Syohai[omote_idx,5])
                     point += 1
-
-                elif saikoro_choice == 2:
+    
+                elif saikoro_choice == 6:
                     point += 1
-
-#裏の攻撃
-            point = 0        
-            while sayonara == "": 
-                
-                if i>=8 and (sum(Score_A) < sum(Score_B)):
-                    Score_B.append(point)
-                    sayonara = "x"
-                    break
-
+                    
                 else:
+                    point += 0
+                    Score_A.append(int(point))
+                    break
+            
+
+#裏の攻
+            point = 0        
+            sayonara == ""
+            if i>=9 and (sum(Score_A) < sum(Score_B)):
+                #Score_B.append(point)
+                sayonara = "x"#裏の攻撃はやらない
+                break
+                
+            else:    
+                while sayonara == "": 
                     saikoro_choice = random.choice(ura_saikoro)
                     #print(saikoro_choice)
 
-                    if saikoro_choice >= 3:
-                        point += 0
-                        Score_B.append(int(point))
-                        point = 0
-                        break
-
-                    elif saikoro_choice == 1:
+                    if saikoro_choice == 1:
+                        #print(Syohai[omote_idx,5])
                         point += 1
-                        if i==8 and (sum(Score_A) < sum(Score_B)+point):
+                        #Score_B.append(point)
+#さよなら判定
+                        if i>=9 and (sum(Score_A) < sum(Score_B)+point):
+                            sayonara = "x サヨナラ1点"
+                            Score_B.append(point)
+                            break
+    
+                    elif saikoro_choice == 6:
+                        point += 1
+    
+#さよなら判定
+                        if i>=9 and (sum(Score_A) < sum(Score_B)+point):
                             Score_B.append(point)
                             sayonara = "x サヨナラ1点"
                             break
-
-                    elif saikoro_choice == 2:
-                        
-                        point += 2
-                        if i==8 and (sum(Score_A) < sum(Score_B)+point):
-                            Score_B.append(point)
-                            sayonara = "x サヨナラ2点"
-                            break
-
-            if i>=8 and (sum(Score_A) != sum(Score_B)):
+                    
+                    else:
+                        point += 0
+                        Score_B.append(point)
+                        break
+                    
+#試合終了の判定
+            if i>=9 and (sum(Score_A) != sum(Score_B)):
                 break
 
+###########################################
         print(Team[omote_idx] + ":", end= "")
         print(Score_A, end= "|") 
         print(sum(Score_A))
@@ -127,12 +140,12 @@ def Game(taisen):
         if(Score_A > Score_B):
             Syohai[omote_idx,1] += 1
             Syohai[ura_idx,2]   += 1
-            #表が連勝したら⁺0.1、裏が連敗したら-0.1
-            if(Syohai[omote_idx,6] == 1):
-                print("連勝")
-                Syohai[omote_idx,5] += 0.01
-            if(Syohai[ura_idx,6] == -1):
-                Syohai[omote_idx,5] -= 0.01
+           ###表が連勝したら⁺0.1、裏が連敗したら-0.1
+            if(Syohai[omote_idx,6] == 1) and (Syohai[omote_idx,5] < 3.0):
+                #print("連勝")
+                Syohai[omote_idx,5] += 0.1
+            if(Syohai[ura_idx,6] == -1) and (Syohai[ura_idx,5] > 0):
+                Syohai[omote_idx,5] -= 0.1
                 
             Syohai[omote_idx,6] = 1
             Syohai[ura_idx,6] = -1
@@ -141,10 +154,10 @@ def Game(taisen):
             Syohai[ura_idx,1]  += 1
             Syohai[omote_idx,2] += 1
             #表が連敗したら-0.1、裏が連勝したら+0.1
-            if(Syohai[omote_idx,6] == -1):
-               Syohai[omote_idx,5] -= 0.01
-            if(Syohai[ura_idx,6] == 1):
-               Syohai[omote_idx,5] += 0.01
+            if(Syohai[omote_idx,6] == -1) and (Syohai[omote_idx,5] > 0):
+               Syohai[omote_idx,5] -= 0.1
+            if(Syohai[ura_idx,6] == 1) and (Syohai[ura_idx,5] < 3.0):
+               Syohai[omote_idx,5] += 0.1
             
             Syohai[omote_idx,6] = -1
             Syohai[ura_idx,6] = 1
@@ -159,13 +172,9 @@ def Game(taisen):
         #重みの制限
         #print(Syohai[omote_idx,5])
         #print(Syohai[ura_idx,5])
-        
-            
-
-
 ###############################################
-
-for  kaisuu in range(15):
+    
+for  kaisuu in range(10):
     #試合開始
     Game(Taisen_1)
     Game(Taisen_2)
@@ -173,6 +182,7 @@ for  kaisuu in range(15):
     Game(Taisen_4)
     Game(Taisen_5)
     Game(Taisen_6)
+
 
 Syoritsu_to_Junni = []
 
@@ -216,5 +226,7 @@ for idx in range(6):
     #print(Syohai[int(Junihyo[idx,0]-1),])
     #勝ち数
     print(str(int(Junihyo[idx,1])) + "|" + str(int(Junihyo[idx,2])) + "|" + str(int(Junihyo[idx,3]))+ "|" + str(Junihyo[idx,5])+ "|" + str(Junihyo[idx,4]))
-    
+
+#print(Syohai)
+#print(get_juni(0,Junni))
 print((kaisuu+1)*15)
