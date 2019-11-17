@@ -4,7 +4,7 @@ Created on Tue May 14 16:40:26 2019
 
 @author: Nobuaki
 """
-from myfunction import make_saikoro,game_sa,get_juni
+from myfunction import make_saikoro,game_sa
 
 import random
 import numpy as np
@@ -36,19 +36,19 @@ Taisen_6 = np.array([[1,2],
 
 #チームインデックス、勝ち数、負け数、引き分け、勝率,重み,前試合の結果
 #omomiは0.0から3.0まで0.5刻み
-Syohai = np.array([[0,0,0,0,0.000,1,0],#広島
-                   [1,0,0,0,0.000,1,0],#巨人
-                   [2,0,0,0,0.000,1.0,0],#横浜
-                   [3,0,0,0,0.000,1.0,0],#ヤクルト
-                   [4,0,0,0,0.000,1.0,0],#阪神
-                   [5,0,0,0,0.000,1.0,0]])#中日
-#順位表　勝率の高いチームから順に格納。チームインデックス、勝ち数、負け数、引き分け、勝率、ゲーム差
-Junihyo = np.array([[0,0,0,0,0,0.000],
-                   [0,0,0,0,0,0.000],
-                   [0,0,0,0,0,0.000],
-                   [0,0,0,0,0,0.000],
-                   [0,0,0,0,0,0.000],
-                   [0,0,0,0,0,0.000]])
+Syohai = np.array([[0,0,0,0,0,1,0],#広島
+                   [1,0,0,0,0,1,0],#巨人
+                   [2,0,0,0,0,1.0,0],#横浜
+                   [3,0,0,0,0,1.0,0],#ヤクルト
+                   [4,0,0,0,0,1.0,0],#阪神
+                   [5,0,0,0,0,1.0,0]])#中日
+#順位表　勝率の高いチームから順に格納。チームインデックス、勝ち数、負け数、引き分け、ゲーム差、勝率、重み
+Junihyo = np.array([[0,0,0,0,0.0,0,0],
+                   [0,0,0,0,0.0,0,0],
+                   [0,0,0,0,0.0,0,0],
+                   [0,0,0,0,0.0,0,0],
+                   [0,0,0,0,0.0,0,0],
+                   [0,0,0,0,0.0,0,0]])
 
 def Game(taisen):
     for x in range(taisen.shape[0]):
@@ -143,9 +143,9 @@ def Game(taisen):
            ###表が連勝したら⁺0.1、裏が連敗したら-0.1
             if(Syohai[omote_idx,6] == 1) and (Syohai[omote_idx,5] < 3.0):
                 #print("連勝")
-                Syohai[omote_idx,5] += 0.1
+                Syohai[omote_idx,5] += 0.05
             if(Syohai[ura_idx,6] == -1) and (Syohai[ura_idx,5] > 0):
-                Syohai[omote_idx,5] -= 0.1
+                Syohai[omote_idx,5] -= 0.05
                 
             Syohai[omote_idx,6] = 1
             Syohai[ura_idx,6] = -1
@@ -155,9 +155,9 @@ def Game(taisen):
             Syohai[omote_idx,2] += 1
             #表が連敗したら-0.1、裏が連勝したら+0.1
             if(Syohai[omote_idx,6] == -1) and (Syohai[omote_idx,5] > 0):
-               Syohai[omote_idx,5] -= 0.1
+               Syohai[omote_idx,5] -= 0.05
             if(Syohai[ura_idx,6] == 1) and (Syohai[ura_idx,5] < 3.0):
-               Syohai[omote_idx,5] += 0.1
+               Syohai[omote_idx,5] += 0.05
             
             Syohai[omote_idx,6] = -1
             Syohai[ura_idx,6] = 1
@@ -174,7 +174,7 @@ def Game(taisen):
         #print(Syohai[ura_idx,5])
 ###############################################
     
-for  kaisuu in range(10):
+for  kaisuu in range(15):
     #試合開始
     Game(Taisen_1)
     Game(Taisen_2)
@@ -184,26 +184,31 @@ for  kaisuu in range(10):
     Game(Taisen_6)
 
 
-Syoritsu_to_Junni = []
+#Syoritsu_to_Junni = []
+Kachi_su_to_Junni = []
 
 for idx in range(len(Team)):
-    Syohai[idx,4] = float(Syohai[idx,1])/(Syohai[idx,1]+ Syohai[idx,2] + Syohai[idx,3])
-    Syoritsu_to_Junni.append(Syohai[idx,4])
+    Kachi_su_to_Junni.append(Syohai[idx,1])
     
 #順位表の計算
-Junni=np.argsort(Syoritsu_to_Junni)[::-1]
-
+#Junni=np.argsort(Syoritsu_to_Junni)[::-1]
+Junni=np.argsort(Kachi_su_to_Junni)[::-1]
 #print(Junni)
+
+Junni1=np.argsort(Syohai)[::-1]
 
 #idx = 0
 for idx in range(len(Junni)):
-    Junihyo[idx,0] =int(Junni[idx])
+    Junihyo[idx,0] = int(Junni[idx])
     #print(Junihyo[idx,0])
-    #チームインデックス
+    #順位表に試合結果を転記
     iidx = 1
-    for iidx in range(5):
+    for iidx in range(4):
         Junihyo[idx,iidx] =Syohai[Junni[idx],iidx]
-   
+    
+    Junihyo[idx,4] = Junihyo[idx,1]/(Junihyo[idx,1]+ Junihyo[idx,2] + Junihyo[idx,3])
+    Junihyo[idx,6] = Syohai[idx,5] 
+
 Junihyo[0,5] = 0
 x=[0,0]
 y=[0,0]
@@ -225,7 +230,7 @@ for idx in range(6):
     print(Team[int(Junihyo[idx,0])], end= ":")
     #print(Syohai[int(Junihyo[idx,0]-1),])
     #勝ち数
-    print(str(int(Junihyo[idx,1])) + "|" + str(int(Junihyo[idx,2])) + "|" + str(int(Junihyo[idx,3]))+ "|" + str(Junihyo[idx,5])+ "|" + str(Junihyo[idx,4]))
+    print(str(int(Junihyo[idx,1])) + "|" + str(int(Junihyo[idx,2])) + "|" + str(int(Junihyo[idx,3]))+ "|" + str(Junihyo[idx,5])+ "|" + str(round(Junihyo[idx,4],2))+ "|" + str(round(Junihyo[idx,6],2)))
 
 #print(Syohai)
 #print(get_juni(0,Junni))
